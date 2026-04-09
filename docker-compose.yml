@@ -4,8 +4,15 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    ports:
-      - "${PORT:-80}:80"
+    # No ports — Traefik routes via labels
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.ralph-web.rule=Host(`ralph.soleenterprises.com`)"
+      - "traefik.http.routers.ralph-web.entrypoints=websecure"
+      - "traefik.http.routers.ralph-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.ralph-web.loadbalancer.server.port=80"
+    networks:
+      - dokploy-network
     volumes:
       # Loop workspace — preserves files across restarts
       - ralph-workspace:/workspace
@@ -13,6 +20,10 @@ services:
       - ralph-claude-auth:/root/.claude
       # ralph state (~/.ralph) — preserves loop registry, memories, tasks
       - ralph-state:/root/.ralph
+
+networks:
+  dokploy-network:
+    external: true
 
 volumes:
   ralph-workspace:
