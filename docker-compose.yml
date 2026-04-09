@@ -6,17 +6,15 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-80}:80"
-    environment:
-      # Required: Claude API key for ralph to call Claude
-      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
-      # ralph-cli also checks CLAUDE_API_KEY as a fallback
-      - CLAUDE_API_KEY=${ANTHROPIC_API_KEY}
     volumes:
       # Loop workspace — preserves files across restarts
       - ralph-workspace:/workspace
-      # ralph state dir (~/.ralph) — preserves loop registry, memories, tasks
+      # Claude Code auth (~/.claude) — persist so you only auth once
+      - ralph-claude-auth:/root/.claude
+      # ralph state (~/.ralph) — preserves loop registry, memories, tasks
       - ralph-state:/root/.ralph
 
 volumes:
   ralph-workspace:
+  ralph-claude-auth:
   ralph-state:

@@ -6,7 +6,6 @@ RUN apt-get update && apt-get install -y \
 
 RUN git clone --depth 1 https://github.com/mikeyobrien/ralph-orchestrator /app
 WORKDIR /app
-# Build both the API server and the CLI (api calls CLI to run loops)
 RUN cargo build --release -p ralph-api -p ralph-cli
 
 # Stage 2: Build React frontend (static files only)
@@ -14,17 +13,19 @@ FROM node:20-alpine AS frontend-builder
 RUN apk add --no-cache git
 RUN git clone --depth 1 https://github.com/mikeyobrien/ralph-orchestrator /app
 WORKDIR /app
-# Install all workspace deps (needed for @ralph-web/dashboard build)
 RUN npm install
 RUN npm run build:web
 
 # Stage 3: Runtime image
-FROM debian:bookworm-slim
+FROM node:20-slim
 RUN apt-get update && apt-get install -y \
     nginx supervisor git curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Rust binaries
+# Install claude CLI (Claude Code — uses Max plan auth, no API key needed)
+RUN npm install -g @anthropic-ai/claude-code
+
+# Ralph binaries
 COPY --from=rust-builder /app/target/release/ralph-api /usr/local/bin/ralph-api
 COPY --from=rust-builder /app/target/release/ralph    /usr/local/bin/ralph
 
@@ -35,11 +36,9 @@ COPY --from=frontend-builder /app/frontend/ralph-web/dist /srv/ralph-web
 COPY nginx.conf /etc/nginx/sites-available/default
 COPY supervisord.conf /etc/supervisor/conf.d/ralph.conf
 
-# Persistent dirs: workspace (ralph loop files) and state (~/.ralph)
-RUN mkdir -p /workspace /root/.ralph /var/log/supervisor
-
-# Remove default nginx config
-RUN rm -f /etc/nginx/sites-enabled/default && \
+# Dirs
+RUN mkdir -p /workspace /root/.claude /var/log/supervisor && \
+    rm -f /etc/nginx/sites-enabled/default && \
     ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
 
 WORKDIR /workspace
