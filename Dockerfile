@@ -1,5 +1,5 @@
 # Stage 1: Build Rust binaries (ralph-api + ralph CLI)
-FROM rust:1.85-slim AS rust-builder
+FROM rust:slim AS rust-builder
 RUN apt-get update && apt-get install -y \
     pkg-config libssl-dev git curl \
     && rm -rf /var/lib/apt/lists/*
